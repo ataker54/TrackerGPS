@@ -1,4 +1,5 @@
 #include "gps_tracker.h"
+
 #include "ui_gps_tracker.h"
 #include <QtDebug>
 #include <QSerialPortInfo>

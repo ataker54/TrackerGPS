@@ -1,7 +1,9 @@
 #include "gpsreceiver.h"
+
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QThread>
+#include "gps_port_autodetector.h"
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent) {}
 

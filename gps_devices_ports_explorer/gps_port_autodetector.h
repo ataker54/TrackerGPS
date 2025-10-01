@@ -22,11 +22,12 @@ public:
     void createDefaultGpsJson(const QString& filePath);
     void loadGpsDatabase(const QString& filePath);
     const QList<QSerialPortInfo>& getDetectedPorts() const { return detectedPorts; }
+    QString getGpsPortName() const {return gpsPortName;}
 
 private:
     QList<QSerialPortInfo> detectedPorts;
     QList<GpsDeviceEntry> gpsDatabase;
-
+    QString gpsPortName;
 signals:
 
 };

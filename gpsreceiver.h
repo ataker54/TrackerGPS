@@ -5,7 +5,7 @@
 #include <QSerialPort>
 #include <QFile>
 #include <QTextStream>
-#include "gpsportautodetector.h"
+
 
 struct GpsData {
     double latitude = 0.0;

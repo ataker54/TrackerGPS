@@ -1,4 +1,5 @@
-#include "gpsportautodetector.h"
+#include "gps_port_autodetector.h"
+
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -174,6 +175,7 @@ void GpsPortAutoDetector::FindPorts()
                      : QByteArray());
 
         if (isCOMPortGPS(portInfo)) {
+            gpsPortName=portInfo.portName();
             qDebug() << "Это GPS-порт!";
         } else {
             qDebug() << "Не GPS.";

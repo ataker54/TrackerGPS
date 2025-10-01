@@ -1,0 +1,11 @@
+QT += serialport
+
+GPS_PORT_AUTODETECTOR_DIR = $$PWD
+
+INCLUDEPATH += $$GPS_PORT_AUTODETECTOR_DIR
+
+SOURCES += \
+$$GPS_PORT_AUTODETECTOR_DIR/gps_port_autodetector.cpp\
+
+HEADERS += \
+$$GPS_PORT_AUTODETECTOR_DIR/gps_port_autodetector.h

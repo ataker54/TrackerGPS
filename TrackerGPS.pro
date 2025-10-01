@@ -18,12 +18,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     gpsportautodetector.cpp \
+    gpsreceiver.cpp \
     main.cpp \
     gps_tracker.cpp
 
 HEADERS += \
     gps_tracker.h \
-    gpsportautodetector.h
+    gpsportautodetector.h \
+    gpsreceiver.h
 
 FORMS += \
     gps_tracker.ui

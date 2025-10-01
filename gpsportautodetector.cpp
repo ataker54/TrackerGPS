@@ -8,7 +8,7 @@
 
 GpsPortAutoDetector::GpsPortAutoDetector(QObject *parent) : QObject(parent)
 {
-    const QString jsonPath = "gps_keywords.json";
+    const QString jsonPath = "gps_database.json";
 
     // Создаём бд, если она не существует
     if (!QFile::exists(jsonPath)) {
@@ -82,7 +82,6 @@ void GpsPortAutoDetector::createDefaultGpsJson(const QString& filePath)
     // Delorme
     addDevice("Delorme", "067B", "2303", {"gps", "delorme", "earthmate"}, "Delorme Earthmate GPS LT-20");
 
-    // Write to file
     QJsonDocument doc(deviceArray);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -135,13 +134,12 @@ void GpsPortAutoDetector::loadGpsDatabase(const QString& filePath)
     qDebug() << "Загружено устройств:" << gpsDatabase.size();
 }
 
-//функция определения GPS-порта
+//функция определение GPS-порта по id из известной базы данных
 bool GpsPortAutoDetector::isCOMPortGPS(const QSerialPortInfo& portInfo) const
 {
     if (!portInfo.hasVendorIdentifier() || !portInfo.hasProductIdentifier())
         return false;
 
-    //определение GPS-порта по id из известной базы данных
     QString vid = QString::number(portInfo.vendorIdentifier(), 16).toUpper().rightJustified(4, '0');
     QString pid = QString::number(portInfo.productIdentifier(), 16).toUpper().rightJustified(4, '0');
 

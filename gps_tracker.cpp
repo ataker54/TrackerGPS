@@ -21,7 +21,7 @@ gps_tracker::~gps_tracker()
 
 void gps_tracker::btn_click()
 {
-    GpsPortAutoDetector detector;
-    detector.FindPorts();
+    GPSReceiver *receiver = new GPSReceiver(this);
+    receiver->start();
 }
 

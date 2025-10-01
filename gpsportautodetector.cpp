@@ -10,16 +10,17 @@ GpsPortAutoDetector::GpsPortAutoDetector(QObject *parent) : QObject(parent)
 {
     const QString jsonPath = "gps_keywords.json";
 
-    // Создаём файл, если он не существует
+    // Создаём бд, если она не существует
     if (!QFile::exists(jsonPath)) {
-        qDebug() << "Файл не найден, создаю базу...";
+        qDebug() << "Файл не найден, создание дб";
         createDefaultGpsJson(jsonPath);
     }
 
-    // Загружаем базу
+    // Загружаем бд
     loadGpsDatabase(jsonPath);
 }
 
+//функция создание базы данных
 void GpsPortAutoDetector::createDefaultGpsJson(const QString& filePath)
 {
     QJsonArray deviceArray;
@@ -94,9 +95,10 @@ void GpsPortAutoDetector::createDefaultGpsJson(const QString& filePath)
     qDebug() << " JSON-файл создан:" << filePath;
 }
 
+//функция загрузки бд
 void GpsPortAutoDetector::loadGpsDatabase(const QString& filePath)
 {
-    gpsDatabase.clear(); // gpsDatabase теперь QList<GpsDeviceEntry>
+    gpsDatabase.clear();
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -133,24 +135,26 @@ void GpsPortAutoDetector::loadGpsDatabase(const QString& filePath)
     qDebug() << "Загружено устройств:" << gpsDatabase.size();
 }
 
-
+//функция определения GPS-порта
 bool GpsPortAutoDetector::isCOMPortGPS(const QSerialPortInfo& portInfo) const
 {
     if (!portInfo.hasVendorIdentifier() || !portInfo.hasProductIdentifier())
         return false;
 
+    //определение GPS-порта по id из известной базы данных
     QString vid = QString::number(portInfo.vendorIdentifier(), 16).toUpper().rightJustified(4, '0');
     QString pid = QString::number(portInfo.productIdentifier(), 16).toUpper().rightJustified(4, '0');
 
     for (const GpsDeviceEntry& entry : gpsDatabase) {
         if (entry.vid == vid && entry.pid == pid) {
-            qDebug() << " GPS найден:" << entry.vendor << entry.comment;
+            qDebug() << "GPS найден:" << entry.vendor << entry.comment;
             return true;
         }
     }
     return false;
 }
 
+//функция определения портов и проверки GPS
 void GpsPortAutoDetector::FindPorts()
 {
     qDebug() << "Загружено устройств:" << gpsDatabase.size();

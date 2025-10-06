@@ -3,14 +3,7 @@
 
 #include <QObject>
 #include <QSerialPortInfo>
-
-struct GpsDeviceEntry {
-    QString vendor;
-    QString vid;
-    QString pid;
-    QStringList keywords;
-    QString comment;
-};
+#include <json_file_creator.h>
 
 class GpsPortAutoDetector : public QObject
 {

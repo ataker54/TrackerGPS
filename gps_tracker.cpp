@@ -4,6 +4,7 @@
 #include <QtDebug>
 #include <QSerialPortInfo>
 #include <QString>
+#include <gps_port_autodetector.h>
 
 gps_tracker::gps_tracker(QWidget *parent)
     : QMainWindow(parent)
@@ -22,7 +23,15 @@ gps_tracker::~gps_tracker()
 
 void gps_tracker::btn_click()
 {
+    GpsPortAutoDetector detector;
+    detector.FindPorts();
+
+    QString gpsPort = detector.getGpsPortName();  // ← ты уже добавил эту переменную
+    if (gpsPort.isEmpty()) {
+        qDebug() << "GPS-порт не найден.";
+        return;
+    }
     GPSReceiver *receiver = new GPSReceiver(this);
-    receiver->start();
+    receiver->start("COM2", 9600);
 }
 

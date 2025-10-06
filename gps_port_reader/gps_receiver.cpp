@@ -1,4 +1,4 @@
-#include "gpsreceiver.h"
+#include "gps_receiver.h"
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -7,26 +7,15 @@
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent) {}
 
-void GPSReceiver::start(int baudRate, int durationMs)
+void GPSReceiver::start(const QString &port_name,int baudRate, int durationMs)
 {
-    GpsPortAutoDetector detector;
-    detector.FindPorts();
-
-    QString gpsPort;
-    for (const QSerialPortInfo& info : detector.getDetectedPorts()) {
-        if (detector.isCOMPortGPS(info)) {
-            gpsPort = info.portName();
-            break;
-        }
-    }
-
-    if (gpsPort.isEmpty()) {
+    if (port_name.isEmpty()) {
         qDebug() << "GPS-порт не найден.";
         return;
     }
 
     //настройка порта
-    serial.setPortName(gpsPort);
+    serial.setPortName(port_name);
     serial.setBaudRate(baudRate);
     serial.setDataBits(QSerialPort::Data8);
     serial.setParity(QSerialPort::NoParity);
@@ -35,11 +24,11 @@ void GPSReceiver::start(int baudRate, int durationMs)
     serial.setReadBufferSize(1024);
 
     if (!serial.open(QIODevice::ReadOnly)) {
-        qDebug() << "Не удалось открыть порт" << gpsPort << ":" << serial.errorString();
+        qDebug() << "Не удалось открыть порт" << port_name << ":" << serial.errorString();
         return;
     }
 
-    qDebug() << "GPSReceiver started on" << gpsPort;
+    qDebug() << "GPSReceiver started on" << port_name;
 
     logFile.setFileName("gps_data.txt");
     if (!logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {

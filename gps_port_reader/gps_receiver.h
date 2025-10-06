@@ -22,7 +22,7 @@ class GPSReceiver : public QObject
 
 public:
     explicit GPSReceiver(QObject *parent = nullptr);
-    void start(int baudRate = 9600, int durationMs = 30000);
+    void start(const QString &port_name,int baudRate = 9600, int durationMs = 30000);
 
 private:
     double convertCoord(const QString &coord, const QString &dir);

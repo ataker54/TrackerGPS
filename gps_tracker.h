@@ -2,7 +2,7 @@
 #define GPS_TRACKER_H
 
 #include <QMainWindow>
-#include <gpsreceiver.h>
+#include <gps_receiver.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class gps_tracker; }

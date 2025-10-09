@@ -11,7 +11,7 @@
 
 GpsPortAutoDetector::GpsPortAutoDetector(QObject *parent) : QObject(parent)
 {
-    json_file_creator db("gps_database.json");
+    JsonFileCreator db("gps_database.json");
     db.createDefaultDatabase();
     gpsDatabase = db.loadDatabase();
 }

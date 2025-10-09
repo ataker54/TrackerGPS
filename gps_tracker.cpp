@@ -26,7 +26,7 @@ void gps_tracker::btn_click()
     GpsPortAutoDetector detector;
     detector.FindPorts();
 
-    QString gpsPort = detector.getGpsPortName();  // ← ты уже добавил эту переменную
+    QString gpsPort = detector.getGpsPortName();
     if (gpsPort.isEmpty()) {
         qDebug() << "GPS-порт не найден.";
         return;

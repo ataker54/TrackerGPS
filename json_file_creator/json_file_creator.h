@@ -13,10 +13,10 @@ struct GpsDeviceEntry {
     QStringList keywords;
 };
 
-class json_file_creator
+class JsonFileCreator
 {
 public:
-    explicit json_file_creator(const QString& filePath = "gps_database.json");
+    explicit JsonFileCreator(const QString& filePath = "gps_database.json");
 
     void createDefaultDatabase();
     QList<GpsDeviceEntry> loadDatabase();

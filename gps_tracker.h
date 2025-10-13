@@ -8,7 +8,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class gps_tracker; }
 QT_END_NAMESPACE
 
-class gps_tracker : public QMainWindow
+class gps_tracker : public QMainWindow // fix: переименовать название класса в стиле UpperCamelCase
 {
     Q_OBJECT
 

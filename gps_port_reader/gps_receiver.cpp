@@ -7,7 +7,7 @@
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent) {}
 
-void GPSReceiver::start(const QString &port_name,int baudRate, int durationMs)
+void GPSReceiver::start(const QString &port_name,int baudRate, int durationMs) //fix: добавить bool isWriteToFile = false, bool isWriteToDebug=true
 {
     if (port_name.isEmpty()) {
         qDebug() << "GPS-порт не найден.";
@@ -63,14 +63,14 @@ void GPSReceiver::start(const QString &port_name,int baudRate, int durationMs)
                     parseGprmc(line, data);
 
                 if (data.valid) {
-                    qDebug().nospace() << "\n GPS Fix:"
+                    qDebug().nospace() << "\n GPS Fix:" //fix: только если isWriteToDebug == true
                                        << "\n UTC Time   : " << data.timeUtc
                                        << "\n Latitude   : " << QString::number(data.latitude, 'f', 6)
                                        << "\n Longitude  : " << QString::number(data.longitude, 'f', 6)
                                        << "\n Altitude   : " << QString::number(data.altitude, 'f', 2) << " m"
                                        << "\n Speed      : " << QString::number(data.speedKmh, 'f', 2) << " km/h\n";
 
-                    writeToFile(data);
+                    writeToFile(data); //fix: Писать в файл только если isWriteToFile == true
                 }
             }
         } else {

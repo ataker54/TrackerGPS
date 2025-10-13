@@ -32,6 +32,6 @@ void gps_tracker::btn_click()
         return;
     }
     GPSReceiver *receiver = new GPSReceiver(this);
-    receiver->start("COM2", 9600);
+    receiver->start(gpsPort, 9600);
 }
 

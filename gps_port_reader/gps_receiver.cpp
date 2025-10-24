@@ -7,82 +7,100 @@
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent) {}
 
-void GPSReceiver::start(const QString &port_name,int baudRate, int durationMs) //fix: добавить bool isWriteToFile = false, bool isWriteToDebug=true
+GPSReceiver::~GPSReceiver()
 {
-    if (port_name.isEmpty()) {
-        qDebug() << "GPS-порт не найден.";
-        return;
-    }
+    stop();
+}
 
-    //настройка порта
+void GPSReceiver::start(const QString &port_name, int baudRate, bool isWriteToFile, bool isWriteToDebug)
+{
+    if (isStart || port_name.isEmpty()) return;
+
+    writeFile = isWriteToFile;
+    writeDebug = isWriteToDebug;
+
     serial.setPortName(port_name);
     serial.setBaudRate(baudRate);
     serial.setDataBits(QSerialPort::Data8);
     serial.setParity(QSerialPort::NoParity);
     serial.setStopBits(QSerialPort::OneStop);
     serial.setFlowControl(QSerialPort::NoFlowControl);
-    serial.setReadBufferSize(1024);
 
     if (!serial.open(QIODevice::ReadOnly)) {
-        qDebug() << "Не удалось открыть порт" << port_name << ":" << serial.errorString();
+        if (writeDebug) qDebug() << "Не удалось открыть порт" << port_name << ":" << serial.errorString();
         return;
     }
 
-    qDebug() << "GPSReceiver started on" << port_name;
-
-    logFile.setFileName("gps_data.txt");
-    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        qDebug() << "Не удалось открыть файл gps_data.txt";
-        return;
+    if (writeFile) {
+        logFile.setFileName("gps_data.txt");
+        if (!logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+            if (writeDebug) qDebug() << "Не удалось открыть файл gps_data.txt";
+            serial.close();
+            return;
+        }
     }
 
-    QTextStream out(&logFile);
-    out.setRealNumberNotation(QTextStream::FixedNotation);
-    out.setRealNumberPrecision(6);
+    buffer.clear();
+    fixMap.clear();
+    isStart = true;
 
-    QElapsedTimer timer;
-    timer.start();
-    QByteArray buffer;
+    connect(&serial, SIGNAL (readyRead()), SLOT(onReadyRead()));
 
-    //запись данных в файл
-    while (timer.elapsed() < durationMs) {
-        if (serial.waitForReadyRead(1000)) {
-            buffer += serial.readAll();
-            QList<QByteArray> lines = buffer.split('\n');
-            buffer.clear();
+    if (writeDebug) qDebug() << "GPSReceiver started on" << port_name;
+}
 
-            for (QByteArray &lineRaw : lines) {
-                QString line = QString::fromLatin1(lineRaw).trimmed();
-                if (line.isEmpty())
-                    continue;
+void GPSReceiver::stop()
+{
+    if (!isStart) return;
+    isStart = false;
+    disconnect(&serial, &QSerialPort::readyRead, this, &GPSReceiver::onReadyRead);
+    if (logFile.isOpen()) logFile.close();
+    if (serial.isOpen()) serial.close();
+    emit finished();
+    if (writeDebug) qDebug() << "GPSReceiver stopped";
+}
 
-                GpsData data;
-                if (line.contains("GGA"))
-                    data = parseGpgga(line);
-                else if (line.contains("RMC"))
-                    parseGprmc(line, data);
+GpsData GPSReceiver::currentData() const { return latestData; }
 
-                if (data.valid) {
-                    qDebug().nospace() << "\n GPS Fix:" //fix: только если isWriteToDebug == true
-                                       << "\n UTC Time   : " << data.timeUtc
-                                       << "\n Latitude   : " << QString::number(data.latitude, 'f', 6)
-                                       << "\n Longitude  : " << QString::number(data.longitude, 'f', 6)
-                                       << "\n Altitude   : " << QString::number(data.altitude, 'f', 2) << " m"
-                                       << "\n Speed      : " << QString::number(data.speedKmh, 'f', 2) << " km/h\n";
+void GPSReceiver::onReadyRead()
+{
+    if (!isStart) return;
 
-                    writeToFile(data); //fix: Писать в файл только если isWriteToFile == true
-                }
-            }
-        } else {
-            qDebug() << "Ожидание данных...";
+    buffer += serial.readAll();
+    QList<QByteArray> lines = buffer.split('\n');
+    if (!buffer.endsWith('\n') && !buffer.endsWith('\r')) {
+        buffer = lines.takeLast();
+    } else {
+        buffer.clear();
+    }
+
+    for (const QByteArray &raw : lines) {
+        QString line = QString::fromLatin1(raw).trimmed();
+        if (line.isEmpty()) continue;
+
+        GpsData data;
+        if (line.contains("$GPGGA") || line.contains("GGA"))
+            data = parseGpgga(line);
+        else if (line.contains("$GPRMC") || line.contains("RMC"))
+            parseGprmc(line, data);
+        else
+            continue;
+
+        if (!data.valid) continue;
+
+        latestData = data;
+        emit gpsDataUpdated(data);
+
+        if (writeDebug) {
+            qDebug().nospace() << "GPS:"
+                               << " UTC:" << data.timeUtc
+                               << " Lat:" << QString::number(data.latitude, 'f', 6)
+                               << " Lon:" << QString::number(data.longitude, 'f', 6)
+                               << " Alt:" << QString::number(data.altitude, 'f', 2);
         }
 
-        QThread::msleep(100);
+        if (writeFile) writeToFile(data);
     }
-
-    logFile.close();
-    serial.close();
-    qDebug() << "Данные записаны в gps_data.txt";
 }
 
 //преобразование NMEA данных в десятичный формат
@@ -142,6 +160,14 @@ void GPSReceiver::writeToFile(const GpsData &data)
         entry.altitude = data.altitude;
     if (data.speedKmh != 0.0)
         entry.speedKmh = data.speedKmh;
+    if (data.course != 0.0)
+           entry.course = data.course;
+    if (data.satellites != 0)
+           entry.satellites = data.satellites;
+    if (data.hdop != 0.0)
+           entry.hdop = data.hdop;
+    if (!data.date.isEmpty())
+           entry.date = data.date;
     entry.latitude = data.latitude;
     entry.longitude = data.longitude;
     entry.timeUtc = data.timeUtc;
@@ -153,7 +179,10 @@ void GPSReceiver::writeToFile(const GpsData &data)
             << "Latitude   : " << QString::number(entry.latitude, 'f', 6) << "\n"
             << "Longitude  : " << QString::number(entry.longitude, 'f', 6) << "\n"
             << "Altitude   : " << QString::number(entry.altitude, 'f', 2) << " m\n"
-            << "Speed      : " << QString::number(entry.speedKmh, 'f', 2) << " km/h\n\n";
+            << "Speed      : " << QString::number(entry.speedKmh, 'f', 2) << " km/h\n\n"
+            << "Course      : " << QString::number(entry.course, 'f', 2) << "°\n"
+            << "Satellites  : " << entry.satellites << "\n"
+            << "HDOP        : " << QString::number(entry.hdop, 'f', 2) << "\n\n";
 
         fixMap.remove(entry.timeUtc);
     }

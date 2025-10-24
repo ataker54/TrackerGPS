@@ -11,16 +11,18 @@ class GpsPortAutoDetector : public QObject
 public:
     explicit GpsPortAutoDetector(QObject *parent = nullptr);
     void FindPorts();
-    bool isCOMPortGPS(const QSerialPortInfo& portInfo) const; // fix: private?
-    void createDefaultGpsJson(const QString& filePath);// fix: private?
-    void loadGpsDatabase(const QString& filePath);// fix: private?
-    const QList<QSerialPortInfo>& getDetectedPorts() const { return detectedPorts; } // fix: формироровать список QSerialPortInfo, которые определены как GPS
+    QList<QSerialPortInfo> getGpsPorts() const;
     QString getGpsPortName() const {return gpsPortName;}
 
 private:
+    bool isCOMPortGPS(const QSerialPortInfo& portInfo) const;
+    void createDefaultGpsJson(const QString& filePath);
+    void loadGpsDatabase(const QString& filePath);
+
     QList<QSerialPortInfo> detectedPorts;
     QList<GpsDeviceEntry> gpsDatabase;
     QString gpsPortName;
+    QList<QSerialPortInfo> gpsPorts;
 signals:
 
 };

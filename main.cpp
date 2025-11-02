@@ -1,14 +1,12 @@
-#include "gps_tracker.h"
-
 #include <QApplication>
+#include "gps_tracker.h"
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-
-    //1 autodetector
-
-    gps_tracker w;
-    w.show();
-    return a.exec();
+    qRegisterMetaType<GpsData>("GpsData");
+    QApplication app(argc, argv);
+    gps_tracker tracker;
+    tracker.show();
+    return app.exec();
 }
+

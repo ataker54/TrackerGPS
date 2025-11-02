@@ -1,146 +1,109 @@
 #include "gps_receiver.h"
+
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QThread>
+#include "gps_port_autodetector.h"
 
-GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent)
+GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent) {}
+
+GPSReceiver::~GPSReceiver()
 {
-    logFile.setFileName("gps_log.txt");
-    logFile.open(QIODevice::Append | QIODevice::Text);
-
-    reconnectTimer = new QTimer(this);
-    reconnectTimer->setInterval(reconnectIntervalMs);
-    connect(reconnectTimer, &QTimer::timeout, this, &GPSReceiver::attemptReconnect);
+    stop();
 }
 
-void GPSReceiver::start(const QString &portName, int baudRate)
+void GPSReceiver::start(const QString &port_name, int baudRate, bool isWriteToFile, bool isWriteToDebug)
 {
-    lastPort = portName;
-    lastBaud = baudRate;
+    if (isStart || port_name.isEmpty()) return;
 
-    mutex.lock();
-    running = true;
-    mutex.unlock();
+    writeFile = isWriteToFile;
+    writeDebug = isWriteToDebug;
 
-    readLoop(portName, baudRate);
+    serial.setPortName(port_name);
+    serial.setBaudRate(baudRate);
+    serial.setDataBits(QSerialPort::Data8);
+    serial.setParity(QSerialPort::NoParity);
+    serial.setStopBits(QSerialPort::OneStop);
+    serial.setFlowControl(QSerialPort::NoFlowControl);
+
+    if (!serial.open(QIODevice::ReadOnly)) {
+        if (writeDebug) qDebug() << "Не удалось открыть порт" << port_name << ":" << serial.errorString();
+        return;
+    }
+
+    if (writeFile) {
+        logFile.setFileName("gps_data.txt");
+        if (!logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+            if (writeDebug) qDebug() << "Не удалось открыть файл gps_data.txt";
+            serial.close();
+            return;
+        }
+    }
+
+    buffer.clear();
+    fixMap.clear();
+    isStart = true;
+
+    connect(&serial, SIGNAL (readyRead()), SLOT(onReadyRead()));
+
+    if (writeDebug) qDebug() << "GPSReceiver started on" << port_name;
 }
 
 void GPSReceiver::stop()
 {
-    mutex.lock();
-    running = false;
-    mutex.unlock();
-
-    if (reconnectTimer->isActive())
-        reconnectTimer->stop();
-
-    logFile.close();
-}
-
-void GPSReceiver::readLoop(const QString &portName, int baudRate)
-{
-    QSerialPort gps;
-    gps.setPortName(portName);
-    gps.setBaudRate(baudRate);
-    gps.setDataBits(QSerialPort::Data8);
-    gps.setParity(QSerialPort::NoParity);
-    gps.setStopBits(QSerialPort::OneStop);
-    gps.setFlowControl(QSerialPort::NoFlowControl);
-
-    if (!gps.open(QIODevice::ReadOnly)) {
-        qDebug() << "❌ Не удалось открыть порт:" << gps.errorString();
-        if (!reconnectTimer->isActive())
-            reconnectTimer->start();
-        emit finished();
-        return;
-    }
-
-    if (reconnectTimer->isActive())
-        reconnectTimer->stop();
-
-    qDebug() << "✅ GPS подключен к" << portName;
-
-    QByteArray buffer;
-    int noDataCounter = 0;
-
-    while (true) {
-        mutex.lock();
-        bool keepRunning = running;
-        mutex.unlock();
-        if (!keepRunning) break;
-
-        if (gps.waitForReadyRead(1000)) {
-            QByteArray chunk = gps.readAll();
-            if (!chunk.isEmpty()) {
-                buffer += chunk;
-                noDataCounter = 0;
-
-                QStringList lines = QString::fromLatin1(buffer).split("\n");
-                buffer.clear();
-
-                for (const QString &line : lines) {
-                    QString trimmed = line.trimmed();
-                    if (!trimmed.isEmpty())
-                        parseLine(trimmed);
-                }
-            }
-        } else {
-            noDataCounter++;
-            if (noDataCounter >= 5) {
-                if (!reconnectTimer->isActive()) {
-                    qDebug() << "⏱️ Запуск таймера реконнекта";
-                    reconnectTimer->start();
-                }
-                qDebug() << "⚠️ Нет данных от GPS, реконнект...";
-                gps.close();
-                if (!reconnectTimer->isActive())
-                    reconnectTimer->start();
-                emit finished();
-                return;
-            }
-        }
-    }
-
-    mutex.lock();
-    running = false;
-    mutex.unlock();
-    gps.close();
+    if (!isStart) return;
+    isStart = false;
+    disconnect(&serial, &QSerialPort::readyRead, this, &GPSReceiver::onReadyRead);
+    if (logFile.isOpen()) logFile.close();
+    if (serial.isOpen()) serial.close();
     emit finished();
-    qDebug() << "📴 readLoop завершён";
-
+    if (writeDebug) qDebug() << "GPSReceiver stopped";
 }
 
-void GPSReceiver::attemptReconnect()
+GpsData GPSReceiver::currentData() const { return latestData; }
+
+void GPSReceiver::onReadyRead()
 {
-    qDebug() << "🔁 Таймер реконнекта сработал";
-        QMetaObject::invokeMethod(this, [this]() {
-            mutex.lock();
-            running = true;
-            mutex.unlock();
-            start(lastPort, lastBaud);
-        }, Qt::QueuedConnection);
+    if (!isStart) return;
+
+    buffer += serial.readAll();
+    QList<QByteArray> lines = buffer.split('\n');
+    if (!buffer.endsWith('\n') && !buffer.endsWith('\r')) {
+        buffer = lines.takeLast();
+    } else {
+        buffer.clear();
+    }
+
+    for (const QByteArray &raw : lines) {
+        QString line = QString::fromLatin1(raw).trimmed();
+        if (line.isEmpty()) continue;
+
+        GpsData data;
+        if (line.contains("$GPGGA") || line.contains("GGA"))
+            data = parseGpgga(line);
+        else if (line.contains("$GPRMC") || line.contains("RMC"))
+            parseGprmc(line, data);
+        else
+            continue;
+
+        if (!data.valid) continue;
+
+        latestData = data;
+        emit gpsDataUpdated(data);
+
+        if (writeDebug) {
+            qDebug().nospace() << "GPS:"
+                               << " UTC:" << data.timeUtc
+                               << " Lat:" << QString::number(data.latitude, 'f', 6)
+                               << " Lon:" << QString::number(data.longitude, 'f', 6)
+                               << " Alt:" << QString::number(data.altitude, 'f', 2);
+        }
+
+        if (writeFile) writeToFile(data);
+    }
 }
 
-void GPSReceiver::parseLine(const QString &line)
-{
-    QMutexLocker locker(&mutex);
-
-    if (line.startsWith("$GPGGA")) {
-        GpsData parsed = parseGpgga(line);
-        latest.latitude = parsed.latitude;
-        latest.longitude = parsed.longitude;
-        latest.altitude = parsed.altitude;
-        latest.timeUtc = parsed.timeUtc;
-        latest.valid = parsed.valid;
-        latest.satellites = parsed.satellites;
-        writeToFile(latest);
-        emit gpsUpdated(latest);
-    }
-    else if (line.startsWith("$GPRMC")) {
-        parseGprmc(line, latest);
-        writeToFile(latest);
-    }
-}
-
+//преобразование NMEA данных в десятичный формат
 double GPSReceiver::convertCoord(const QString &coord, const QString &dir)
 {
     if (coord.isEmpty() || (dir != "N" && dir != "S" && dir != "E" && dir != "W"))
@@ -155,6 +118,7 @@ double GPSReceiver::convertCoord(const QString &coord, const QString &dir)
     return decimal;
 }
 
+//парсинг строк $GPGGA
 GpsData GPSReceiver::parseGpgga(const QString &line)
 {
     GpsData data;
@@ -167,10 +131,10 @@ GpsData GPSReceiver::parseGpgga(const QString &line)
     data.altitude = parts[9].toDouble();
     data.timeUtc = parts[1];
     data.valid = (parts[6] != "0");
-    data.satellites = parts[7].toInt();
     return data;
 }
 
+//парсинг строк $GPRMC
 void GPSReceiver::parseGprmc(const QString &line, GpsData &data)
 {
     QStringList parts = line.split(",");
@@ -181,13 +145,12 @@ void GPSReceiver::parseGprmc(const QString &line, GpsData &data)
         data.latitude = convertCoord(parts[3], parts[4]);
         data.longitude = convertCoord(parts[5], parts[6]);
         data.speedKmh = parts[7].toDouble() * 1.852;
-        data.course = parts[8].toDouble();
         data.timeUtc = parts[1];
-        data.date = parts[9];
         data.valid = true;
     }
 }
 
+//функция для читаемого вывода
 void GPSReceiver::writeToFile(const GpsData &data)
 {
     static QMap<QString, GpsData> fixMap;
@@ -197,41 +160,31 @@ void GPSReceiver::writeToFile(const GpsData &data)
         entry.altitude = data.altitude;
     if (data.speedKmh != 0.0)
         entry.speedKmh = data.speedKmh;
+    if (data.course != 0.0)
+           entry.course = data.course;
+    if (data.satellites != 0)
+           entry.satellites = data.satellites;
+    if (data.hdop != 0.0)
+           entry.hdop = data.hdop;
+    if (!data.date.isEmpty())
+           entry.date = data.date;
     entry.latitude = data.latitude;
     entry.longitude = data.longitude;
     entry.timeUtc = data.timeUtc;
     entry.valid = true;
 
-    if (entry.altitude != 0.0 && entry.speedKmh != 0.0 && isWriteToFile) {
+    if (entry.altitude != 0.0 && entry.speedKmh != 0.0) {
         QTextStream out(&logFile);
         out << "GPS Fix @ " << entry.timeUtc << "\n"
             << "Latitude   : " << QString::number(entry.latitude, 'f', 6) << "\n"
             << "Longitude  : " << QString::number(entry.longitude, 'f', 6) << "\n"
             << "Altitude   : " << QString::number(entry.altitude, 'f', 2) << " m\n"
-            << "Speed      : " << QString::number(entry.speedKmh, 'f', 2) << " km/h\n\n";
+            << "Speed      : " << QString::number(entry.speedKmh, 'f', 2) << " km/h\n\n"
+            << "Course      : " << QString::number(entry.course, 'f', 2) << "°\n"
+            << "Satellites  : " << entry.satellites << "\n"
+            << "HDOP        : " << QString::number(entry.hdop, 'f', 2) << "\n\n";
 
         fixMap.remove(entry.timeUtc);
     }
 }
-
-GpsData GPSReceiver::currentGpsData() const
-{
-    QMutexLocker locker(&mutex);
-    return latest;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

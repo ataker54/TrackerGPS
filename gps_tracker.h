@@ -1,38 +1,26 @@
 #ifndef GPS_TRACKER_H
 #define GPS_TRACKER_H
 
-#include <QWidget>
-#include <QPushButton>
-#include <QTextEdit>
-#include <QVBoxLayout>
-#include <QThread>
-#include "gps_receiver.h"
+#include <QMainWindow>
+#include <gps_receiver.h>
 
-class gps_tracker : public QWidget
+QT_BEGIN_NAMESPACE
+namespace Ui { class gps_tracker; }
+QT_END_NAMESPACE
+
+class gps_tracker : public QMainWindow // fix: переименовать название класса в стиле UpperCamelCase
 {
     Q_OBJECT
 
 public:
-    explicit gps_tracker(QWidget *parent = nullptr);
+    gps_tracker(QWidget *parent = nullptr);
     ~gps_tracker();
 
 private slots:
-    void startGps();
-    void stopGps();
-    void updateGpsView(const GpsData &data);
+    void btn_click();
 
 private:
-    QPushButton *btnStart;
-    QPushButton *btnStop;
-    QTextEdit *gpsView;
-    QVBoxLayout *layout;
+    Ui::gps_tracker *ui;
 
-    QThread *gpsThread = nullptr;
-    GPSReceiver *receiver = nullptr;
 };
-
-
-
-
-
 #endif // GPS_TRACKER_H

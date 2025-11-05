@@ -8,6 +8,9 @@
 #include <QMutex>
 #include <QTimer>
 #include <QVector>
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QPushButton>
 
 struct GpsData {
     QString timeUtc;
@@ -30,11 +33,11 @@ class GPSReceiver : public QObject
 
 public:
     explicit GPSReceiver(QObject *parent = nullptr);
+    QWidget *widget() const;
     void start(const QString &portName, int baudRate);
     void stop();
     GpsData currentGpsData() const;
 
-    bool isWriteToFile = false;
     bool isWriteToDebug = true;
 
 signals:
@@ -45,6 +48,7 @@ private slots:
     void attemptReconnect();
 
 private:
+    void updateGui(const GpsData &data);
     void readLoop(const QString &portName, int baudRate);
     void parseLine(const QString &line);
     double convertCoord(const QString &coord, const QString &dir);
@@ -61,6 +65,12 @@ private:
     QFile logFile;
     QTimer *reconnectTimer = nullptr;
     int reconnectIntervalMs = 5000;
+
+    QFrame *guiFrame = nullptr;
+    QLabel *labelStatus = nullptr;
+    QLabel *labelCoords = nullptr;
+    QPushButton *btnStart = nullptr;
+    QPushButton *btnStop = nullptr;
 };
 
 

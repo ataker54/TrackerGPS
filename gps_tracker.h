@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QThread>
 #include "gps_receiver.h"
+#include <QMainWindow>
 
 class gps_tracker : public QWidget
 {
@@ -17,17 +18,9 @@ public:
     ~gps_tracker();
 
 private slots:
-    void startGps();
-    void stopGps();
-    void updateGpsView(const GpsData &data);
+
 
 private:
-    QPushButton *btnStart;
-    QPushButton *btnStop;
-    QTextEdit *gpsView;
-    QVBoxLayout *layout;
-
-    QThread *gpsThread = nullptr;
     GPSReceiver *receiver = nullptr;
 };
 

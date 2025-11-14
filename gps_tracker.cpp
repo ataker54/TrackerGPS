@@ -3,16 +3,19 @@
 
 gps_tracker::gps_tracker(QWidget *parent) : QWidget(parent)
 {
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    receiver = new GPSReceiver(this);
-    layout->addWidget(receiver->widget());
+    GPSReceiver *receiver = new GPSReceiver;
 
+    QObject::connect(receiver, &GPSReceiver::GetDataReceived,
+                     [](const QByteArray &data){
+        qDebug() << "Полученные данные:" << data;
+    });
 
+    receiver->start("COM2", 9600);
 }
 
 gps_tracker::~gps_tracker()
 {
-    receiver->stop();
+
 }
 
 

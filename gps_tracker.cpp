@@ -6,7 +6,7 @@ gps_tracker::gps_tracker(QWidget *parent) : QWidget(parent)
     QVBoxLayout *layout = new QVBoxLayout(this);
     receiver = new GPSReceiver(this);
     layout->addWidget(receiver->widget());
-    receiver->start("COM2", 9600);
+
 
 }
 

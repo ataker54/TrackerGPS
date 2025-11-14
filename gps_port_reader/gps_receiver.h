@@ -42,6 +42,7 @@ public:
 
 signals:
     void gpsUpdated(const GpsData &data);
+    void reconnectNeeded();
     void finished();
 
 private slots:
@@ -56,21 +57,18 @@ private:
     void parseGprmc(const QString &line, GpsData &data);
     void writeToFile(const GpsData &data);
 
+    QFrame *guiFrame;
+    QLabel *labelStatus;
+    QLabel *labelCoords;
+    QPushButton *btnStart;
+    QPushButton *btnStop;
+
+    QFile logFile;
+    mutable QMutex mutex;
+    bool running = false;
     QString lastPort;
     int lastBaud = 9600;
-
-    bool running = false;
-    mutable QMutex mutex;
     GpsData latest;
-    QFile logFile;
-    QTimer *reconnectTimer = nullptr;
-    int reconnectIntervalMs = 5000;
-
-    QFrame *guiFrame = nullptr;
-    QLabel *labelStatus = nullptr;
-    QLabel *labelCoords = nullptr;
-    QPushButton *btnStart = nullptr;
-    QPushButton *btnStop = nullptr;
 };
 
 

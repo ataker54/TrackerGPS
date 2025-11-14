@@ -1,6 +1,8 @@
 #include "gps_receiver.h"
 #include <QDebug>
-
+#include <QThread>
+#include <QMetaObject>
+#include <QMutexLocker>
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent)
 {
@@ -16,7 +18,7 @@ GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent)
     layout->addWidget(btnStop);
 
     connect(btnStart, &QPushButton::clicked, this, [this]() {
-        start(lastPort, lastBaud);
+        start("COM2", 9600); // можно заменить на выбор порта
     });
 
     connect(btnStop, &QPushButton::clicked, this, [this]() {
@@ -31,10 +33,14 @@ GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent)
         qDebug() << "Файл открыт для записи";
     }
 
-    reconnectTimer = new QTimer(this);
-    reconnectTimer->setInterval(reconnectIntervalMs);
-    connect(reconnectTimer, &QTimer::timeout, this, &GPSReceiver::attemptReconnect);
+    connect(this, &GPSReceiver::reconnectNeeded,
+            this, &GPSReceiver::attemptReconnect,
+            Qt::QueuedConnection);
+    connect(this, &GPSReceiver::gpsUpdated,
+            this, &GPSReceiver::updateGui,
+            Qt::QueuedConnection);
 }
+
 QWidget *GPSReceiver::widget() const
 {
     return guiFrame;
@@ -70,8 +76,7 @@ void GPSReceiver::updateGui(const GpsData &data)
         .arg(data.course, 0, 'f', 2));
 }
 
-void GPSReceiver::start(const QString &portName, int baudRate)
-{
+void GPSReceiver::start(const QString &portName, int baudRate) {
     lastPort = portName;
     lastBaud = baudRate;
 
@@ -79,24 +84,24 @@ void GPSReceiver::start(const QString &portName, int baudRate)
     running = true;
     mutex.unlock();
 
-    readLoop(portName, baudRate);
+    QThread *thread = QThread::create([this, portName, baudRate]() {
+        readLoop(portName, baudRate);
+    });
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
 }
 
-void GPSReceiver::stop()
-{
+
+void GPSReceiver::stop() {
     mutex.lock();
     running = false;
     mutex.unlock();
 
-    if (reconnectTimer->isActive())
-        reconnectTimer->stop();
-
     logFile.close();
 }
 
-void GPSReceiver::readLoop(const QString &portName, int baudRate)
-{
-    qDebug() << "readLoop стартовал после реконнекта";
+
+void GPSReceiver::readLoop(const QString &portName, int baudRate) {
     qDebug() << "readLoop запущен с портом" << portName << "и baud" << baudRate;
     QSerialPort gps;
     gps.setPortName(portName);
@@ -108,16 +113,10 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate)
 
     if (!gps.open(QIODevice::ReadOnly)) {
         qDebug() << "Не удалось открыть порт:" << gps.errorString();
-        if (!reconnectTimer->isActive())
-            reconnectTimer->start();
+        emit reconnectNeeded();
         emit finished();
         return;
     }
-
-    if (reconnectTimer->isActive())
-        reconnectTimer->stop();
-
-    qDebug() << "GPS подключен к" << portName;
 
     QByteArray buffer;
     int noDataCounter = 0;
@@ -130,7 +129,6 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate)
 
         if (gps.waitForReadyRead(1000)) {
             QByteArray chunk = gps.readAll();
-            qDebug() << "Получено:" << chunk;
             if (!chunk.isEmpty()) {
                 buffer += chunk;
                 noDataCounter = 0;
@@ -147,33 +145,22 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate)
         } else {
             noDataCounter++;
             if (noDataCounter >= 5) {
-                if (!reconnectTimer->isActive()) {
-                    qDebug() << "Запуск таймера реконнекта";
-                    reconnectTimer->start();
-                }
                 qDebug() << "Нет данных от GPS, реконнект...";
                 gps.close();
-                if (!reconnectTimer->isActive())
-                    reconnectTimer->start();
+                emit reconnectNeeded();
                 emit finished();
                 return;
             }
         }
     }
 
-    mutex.lock();
-    running = false;
-    mutex.unlock();
     gps.close();
     emit finished();
     qDebug() << "readLoop завершён";
-
 }
 
-void GPSReceiver::attemptReconnect()
-{
-    qDebug() << "Таймер реконнекта сработал";
-    emit gpsUpdated(GpsData{});
+void GPSReceiver::attemptReconnect() {
+    qDebug() << "Попытка реконнекта...";
     QMetaObject::invokeMethod(this, [this]() {
         mutex.lock();
         running = true;

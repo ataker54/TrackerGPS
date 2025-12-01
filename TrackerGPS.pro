@@ -20,10 +20,13 @@ include(gps_port_reader/gps_receiver.pri)
 include(json_file_creator/json_file_creator.pri)
 
 SOURCES += \
+    gps_parser.cpp \
     main.cpp \
     gps_tracker.cpp
 
 HEADERS += \
+    gps_data.h \
+    gps_parser.h \
     gps_tracker.h \
 
 FORMS += \

@@ -42,7 +42,7 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate) {
         if (gps.isOpen() && gps.waitForReadyRead(2000)) {
             QByteArray chunk = gps.readAll();
             if (!chunk.isEmpty()) {
-                emit GetDataReceived(chunk);
+                emit getDataReceived(chunk);
             }
         } else {
             qDebug() << "Нет данных или порт закрыт, пробуем реконнект...";
@@ -52,7 +52,7 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate) {
             while (running && !reconnected) {
                 auto detectedPorts = QSerialPortInfo::availablePorts();
                 for (const QSerialPortInfo &portInfo : detectedPorts) {
-                    if (portInfo.portName().startsWith("COM")) {
+                    if (portInfo.portName() == portName) {
                         gps.setPortName(portInfo.portName());
                         if (gps.open(QIODevice::ReadOnly)) {
                             qDebug() << "Реконнект к" << portInfo.portName();

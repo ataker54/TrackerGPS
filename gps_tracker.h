@@ -4,27 +4,21 @@
 #include <QObject>
 #include "gps_data.h"
 
-class GPSReceiver;
-class GPSParser;
-
 class gps_tracker : public QObject {
     Q_OBJECT
 public:
-    explicit gps_tracker(QObject *parent = nullptr);
-
-    void start(const QString &portName, int baudRate);
-    void stop();
+    explicit gps_tracker(const QString &portName,
+                         int baudRate,
+                         QObject *parent = nullptr);
+private slots:
+    void handleParsedData(const GpsData &data);
 
 signals:
     void gpsUpdated(const GpsData &data);
 
-private slots:
-    void handleRawData(const QByteArray &chunk);
-    void handleParsedData(const GpsData &data);
-
 private:
-    GPSReceiver *receiver = nullptr;
-    GPSParser   *parser   = nullptr;
+    class GPSReceiver *receiver;
+    class GPSParser   *parser;
 };
 
 

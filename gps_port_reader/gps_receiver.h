@@ -19,11 +19,11 @@ class GPSReceiver : public QObject
 public:
     explicit GPSReceiver(QObject *parent = nullptr);
 
-    bool start(const QString &portName, int baudRate);
+    bool start(const QString &portName, int baudRate = 9600);
     void stop();
 
 signals:
-    void GetDataReceived(const QByteArray &data);
+    void getDataReceived(const QByteArray &data);
 
 private:
     void readLoop(const QString &portName, int baudRate);

@@ -30,12 +30,27 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate) {
     gps.setStopBits(QSerialPort::OneStop);
     gps.setFlowControl(QSerialPort::NoFlowControl);
 
-    gps.setPortName(portName);
+    QString targetPort = portName;
+
+    if (targetPort.isEmpty()) {
+        GpsPortAutoDetector detector;
+        detector.FindPorts();
+        auto gpsPorts = detector.getGpsPorts();
+        if (!gpsPorts.isEmpty()) {
+            targetPort = gpsPorts.first().portName();
+            qDebug() << "Автоматически выбран порт:" << targetPort;
+        } else {
+            qWarning() << "GPS‑порт не найден!";
+            return;
+        }
+    }
+
+    gps.setPortName(targetPort);
 
     if (!gps.open(QIODevice::ReadOnly)) {
         qWarning() << "Не удалось открыть порт:" << gps.errorString();
     } else {
-        qDebug() << "GPS подключен к" << portName;
+        qDebug() << "GPS подключен к" << targetPort;
     }
 
     while (running) {
@@ -52,7 +67,7 @@ void GPSReceiver::readLoop(const QString &portName, int baudRate) {
             while (running && !reconnected) {
                 auto detectedPorts = QSerialPortInfo::availablePorts();
                 for (const QSerialPortInfo &portInfo : detectedPorts) {
-                    if (portInfo.portName() == portName) {
+                    if (portInfo.portName() == targetPort) {
                         gps.setPortName(portInfo.portName());
                         if (gps.open(QIODevice::ReadOnly)) {
                             qDebug() << "Реконнект к" << portInfo.portName();

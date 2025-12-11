@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include "gps_data.h"
+#include "gps_port_autodetector.h"
 
 class gps_tracker : public QObject {
     Q_OBJECT
@@ -19,6 +20,7 @@ signals:
 private:
     class GPSReceiver *receiver;
     class GPSParser   *parser;
+    class GpsPortAutoDetector *detector;
 };
 
 

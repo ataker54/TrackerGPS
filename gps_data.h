@@ -48,5 +48,6 @@ struct GpsData {
             return parts.join(" | ");
         }
 };
+Q_DECLARE_METATYPE(GpsData);
 
 #endif // GPS_DATA_H

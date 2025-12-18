@@ -15,22 +15,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-include(gps_devices_ports_explorer/gps_port_autodetector.pri) #fix: создать общий прифайл для этих трех
-include(gps_port_reader/gps_receiver.pri)
-include(json_file_creator/json_file_creator.pri)
+include(gps_controller/gps_controller.pri)
+
 
 SOURCES += \
-    gps_parser.cpp \
     main.cpp \
-    gps_tracker.cpp
 
 HEADERS += \
-    gps_data.h \
-    gps_parser.h \
-    gps_tracker.h \
 
 FORMS += \
-    gps_tracker.ui
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

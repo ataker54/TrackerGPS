@@ -4,26 +4,29 @@
 GPSParser::GPSParser(QObject *parent) : QObject(parent) {}
 
 void GPSParser::parseLine(const QString &line) {
-    //qDebug() << "parseLine:" << line;
-
     if (line.startsWith("$GPGGA")) {
-        GpsData parsed = parseGpgga(line);
-        latest = parsed;
-        emit gpsUpdated(latest);
+        ggaData = parseGpgga(line);
+        gotGGA = true;
+    } else if (line.startsWith("$GPRMC")) {
+        parseGprmc(line, rmcData);
+        gotRMC = true;
     }
-    else if (line.startsWith("$GPRMC")) {
-        parseGprmc(line, latest);
+
+    if (gotGGA && gotRMC) {
+        latest.latitude = ggaData.latitude;
+        latest.longitude = ggaData.longitude;
+        latest.altitude = ggaData.altitude;
+        latest.satellites = ggaData.satellites;
+        latest.timeUtc = rmcData.timeUtc;
+        latest.date = rmcData.date;
+        latest.speedKmh = rmcData.speedKmh;
+        latest.course = rmcData.course;
+        latest.valid = ggaData.valid && rmcData.valid;
+
         emit gpsUpdated(latest);
-    }
-    else if (line.startsWith("$GPGLL")) {
-        QStringList parts = line.split(",");
-        if (parts.size() >= 7 && parts[6] == "A") {
-            latest.latitude = convertCoord(parts[1], parts[2]);
-            latest.longitude = convertCoord(parts[3], parts[4]);
-            latest.timeUtc = parts[5];
-            latest.valid = true;
-            emit gpsUpdated(latest);
-        }
+
+        gotGGA = false;
+        gotRMC = false;
     }
 }
 
@@ -70,3 +73,5 @@ void GPSParser::parseGprmc(const QString &line, GpsData &data) {
         data.valid = true;
     }
 }
+
+

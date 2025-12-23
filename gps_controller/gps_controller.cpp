@@ -22,6 +22,10 @@ void gps_controller::start(const QString &portName, int baudRate)
     detector->FindPorts();
     receiver->start(portName, baudRate);
 }
+void gps_controller::stop()
+{
+    receiver->stop();
+}
 
 void gps_controller::handleParsedData(const GpsData &data)
 {

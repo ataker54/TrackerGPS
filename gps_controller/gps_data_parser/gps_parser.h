@@ -1,5 +1,5 @@
+#pragma once
 #include <QObject>
-#include <QString>
 #include "gps_data.h"
 
 class GPSParser : public QObject {
@@ -7,7 +7,6 @@ class GPSParser : public QObject {
 public:
     explicit GPSParser(QObject *parent = nullptr);
 
-public slots:
     void parseLine(const QString &line);
 
 signals:
@@ -18,5 +17,10 @@ private:
     GpsData parseGpgga(const QString &line);
     void parseGprmc(const QString &line, GpsData &data);
 
+    GpsData ggaData;
+    GpsData rmcData;
     GpsData latest;
+
+    bool gotGGA = false;
+    bool gotRMC = false;
 };

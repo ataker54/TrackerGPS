@@ -11,6 +11,7 @@ public:
     explicit gps_controller(QObject *parent = nullptr);
 
     void start(const QString &portName, int baudRate);
+    void stop();
 
 signals:
     void gpsUpdated(const GpsData &data);

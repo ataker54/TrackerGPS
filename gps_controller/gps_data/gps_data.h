@@ -24,11 +24,19 @@ struct GpsData {
                               .arg(latitude, 0, 'f', 6)
                               .arg(longitude, 0, 'f', 6);
 
-                if (!timeUtc.isEmpty())
-                    parts << QString("UTC: %1").arg(timeUtc);
+                if (!timeUtc.isEmpty() && timeUtc.length() >= 6) {
+                    QString hh = timeUtc.mid(0,2);
+                    QString mm = timeUtc.mid(2,2);
+                    QString ss = timeUtc.mid(4,2);
+                    parts += " Время (UTC):" + hh + ":" + mm + ":" + ss;
+                }
 
-                if (!date.isEmpty())
-                    parts << QString("Дата: %1").arg(date);
+                if (!date.isEmpty() && date.length() == 6) {
+                    QString dd = date.mid(0,2);
+                    QString mm = date.mid(2,2);
+                    QString yy = date.mid(4,2);
+                    parts += " Дата:" + dd + "." + mm + ".20" + yy;
+                }
 
                 if (altitude != 0.0)
                     parts << QString("Высота: %1 м").arg(altitude, 0, 'f', 1);

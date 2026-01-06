@@ -4,14 +4,11 @@
 GPSParser::GPSParser(QObject *parent) : QObject(parent) {}
 
 void GPSParser::parseLine(const QString &line) {
-    static bool gotGGA = false;
-    static bool gotRMC = false;
     if (line.startsWith("$GPGGA")) {
         parseGpgga(line);
-        gotGGA = true; }
+    }
     else if (line.startsWith("$GPRMC")) {
         parseGprmc(line);
-        gotRMC = true;
     }
     if (gotGGA && gotRMC) {
         emit gpsUpdated(latest);
@@ -42,6 +39,7 @@ void GPSParser::parseGpgga(const QString &line) {
     latest.timeUtc = parts[1];
     latest.valid = (parts[6] != "0");
     latest.satellites = parts[7].toInt();
+    gotGGA = true;
 }
 
 void GPSParser::parseGprmc(const QString &line) {
@@ -56,5 +54,7 @@ void GPSParser::parseGprmc(const QString &line) {
         latest.course = parts[8].toDouble();
         latest.date = parts[9];
     }
+    gotRMC = true;
+
 }
 

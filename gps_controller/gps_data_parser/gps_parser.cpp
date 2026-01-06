@@ -54,7 +54,6 @@ void GPSParser::parseGprmc(const QString &line) {
         latest.longitude = convertCoord(parts[5], parts[6]);
         latest.speedKmh = parts[7].toDouble() * 1.852;
         latest.course = parts[8].toDouble();
-        latest.timeUtc = parts[1];
         latest.date = parts[9];
     }
 }

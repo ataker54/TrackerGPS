@@ -6,28 +6,10 @@ GPSParser::GPSParser(QObject *parent) : QObject(parent) {}
 void GPSParser::parseLine(const QString &line) {
     if (line.startsWith("$GPGGA")) {
         ggaData = parseGpgga(line);
-        gotGGA = true;
     } else if (line.startsWith("$GPRMC")) {
-        parseGprmc(line, rmcData);
-        gotRMC = true;
+        parseGprmc(line);
     }
 
-    if (gotGGA && gotRMC) {
-        latest.latitude = ggaData.latitude;
-        latest.longitude = ggaData.longitude;
-        latest.altitude = ggaData.altitude;
-        latest.satellites = ggaData.satellites;
-        latest.timeUtc = rmcData.timeUtc;
-        latest.date = rmcData.date;
-        latest.speedKmh = rmcData.speedKmh;
-        latest.course = rmcData.course;
-        latest.valid = ggaData.valid && rmcData.valid;
-
-        emit gpsUpdated(latest);
-
-        gotGGA = false;
-        gotRMC = false;
-    }
 }
 
 double GPSParser::convertCoord(const QString &coord, const QString &dir) {
@@ -49,29 +31,46 @@ GpsData GPSParser::parseGpgga(const QString &line) {
     if (parts.size() < 10)
         return data;
 
-    data.latitude = convertCoord(parts[2], parts[3]);
-    data.longitude = convertCoord(parts[4], parts[5]);
-    data.altitude = parts[9].toDouble();
-    data.timeUtc = parts[1];
-    data.valid = (parts[6] != "0");
-    data.satellites = parts[7].toInt();
-    return data;
+    latest.latitude = convertCoord(parts[2], parts[3]);
+    latest.longitude = convertCoord(parts[4], parts[5]);
+    latest.altitude = parts[9].toDouble();
+    latest.timeUtc = parts[1];
+    latest.valid = (parts[6] != "0");
+    latest.satellites = parts[7].toInt();
+    ggaData = latest;
+
+    if (rmcData.valid) {
+        latest.date = rmcData.date;
+        latest.speedKmh = rmcData.speedKmh;
+        latest.course = rmcData.course;
+        latest.valid = latest.valid && rmcData.valid;
+        emit gpsUpdated(latest);
+    }
+    return latest;
 }
 
-void GPSParser::parseGprmc(const QString &line, GpsData &data) {
+void GPSParser::parseGprmc(const QString &line) {
     QStringList parts = line.split(",");
     if (parts.size() < 9)
         return;
 
     if (parts[2] == "A") {
-        data.latitude = convertCoord(parts[3], parts[4]);
-        data.longitude = convertCoord(parts[5], parts[6]);
-        data.speedKmh = parts[7].toDouble() * 1.852;
-        data.course = parts[8].toDouble();
-        data.timeUtc = parts[1];
-        data.date = parts[9];
-        data.valid = true;
-    }
-}
+        latest.latitude = convertCoord(parts[3], parts[4]);
+        latest.longitude = convertCoord(parts[5], parts[6]);
+        latest.speedKmh = parts[7].toDouble() * 1.852;
+        latest.course = parts[8].toDouble();
+        latest.timeUtc = parts[1];
+        latest.date = parts[9];
+        latest.valid = true;
+        rmcData = latest;
 
+        if (ggaData.valid) {
+            latest.altitude = ggaData.altitude;
+            latest.satellites = ggaData.satellites;
+            latest.valid = latest.valid && ggaData.valid;
+            emit gpsUpdated(latest);
+    }
+
+}
+}
 

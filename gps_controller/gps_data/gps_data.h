@@ -16,45 +16,38 @@ struct GpsData {
     double course = 0.0;
 
     QString toString() const {
-            QStringList parts;
+        QStringList parts;
 
-            if (valid) {
-                if (latitude != 0.0 || longitude != 0.0)
-                    parts << QString("Координаты: %1, %2")
-                              .arg(latitude, 0, 'f', 6)
-                              .arg(longitude, 0, 'f', 6);
+        if (valid) {
+            parts << QString("Координаты: %1, %2")
+                      .arg(latitude, 0, 'f', 6)
+                      .arg(longitude, 0, 'f', 6);
 
-                if (!timeUtc.isEmpty() && timeUtc.length() >= 6) {
-                    QString hh = timeUtc.mid(0,2);
-                    QString mm = timeUtc.mid(2,2);
-                    QString ss = timeUtc.mid(4,2);
-                    parts += " Время (UTC):" + hh + ":" + mm + ":" + ss;
-                }
-
-                if (!date.isEmpty() && date.length() == 6) {
-                    QString dd = date.mid(0,2);
-                    QString mm = date.mid(2,2);
-                    QString yy = date.mid(4,2);
-                    parts += " Дата:" + dd + "." + mm + ".20" + yy;
-                }
-
-                if (altitude != 0.0)
-                    parts << QString("Высота: %1 м").arg(altitude, 0, 'f', 1);
-
-                if (satellites > 0)
-                    parts << QString("Спутники: %1").arg(satellites);
-
-                if (speedKmh > 0.0)
-                    parts << QString("Скорость: %1 км/ч").arg(speedKmh, 0, 'f', 1);
-
-                if (course > 0.0)
-                    parts << QString("Курс: %1°").arg(course, 0, 'f', 1);
-            } else {
-                parts << "Нет валидных данных";
+            if (timeUtc.length() >= 6) {
+                QString hh = timeUtc.mid(0,2);
+                QString mm = timeUtc.mid(2,2);
+                QString ss = timeUtc.mid(4,2);
+                parts << "Время (UTC): " + hh + ":" + mm + ":" + ss;
             }
 
-            return parts.join(" | ");
+            if (date.length() == 6) {
+                QString dd = date.mid(0,2);
+                QString mm = date.mid(2,2);
+                QString yy = date.mid(4,2);
+                parts << "Дата: " + dd + "." + mm + ".20" + yy;
+            }
+
+            parts << QString("Высота: %1 м").arg(altitude, 0, 'f', 1);
+            parts << QString("Спутники: %1").arg(satellites);
+            parts << QString("Скорость: %1 км/ч").arg(speedKmh, 0, 'f', 1);
+            parts << QString("Курс: %1°").arg(course, 0, 'f', 1);
+        } else {
+            parts << "Нет валидных данных";
         }
+
+        return parts.join(" | ");
+    }
+
 };
 
 

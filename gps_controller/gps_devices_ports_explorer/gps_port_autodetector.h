@@ -23,8 +23,6 @@ private:
     QList<GpsDeviceEntry> gpsDatabase;
     QString gpsPortName;
     QList<QSerialPortInfo> gpsPorts;
-signals:
-
 };
 
 #endif // GPSPORTAUTODETECTOR_H

@@ -38,8 +38,6 @@ void GPSParser::parseGpgga(const QString &line) {
     if (parts.size() < 10)
         return;
 
-    latest.latitude = convertCoord(parts[2], parts[3]);
-    latest.longitude = convertCoord(parts[4], parts[5]);
     latest.altitude = parts[9].toDouble();
     latest.timeUtc = parts[1];
     latest.valid = (parts[6] != "0");
@@ -58,7 +56,6 @@ void GPSParser::parseGprmc(const QString &line) {
         latest.course = parts[8].toDouble();
         latest.timeUtc = parts[1];
         latest.date = parts[9];
-        latest.valid = true;
     }
 }
 

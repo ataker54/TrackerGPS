@@ -14,10 +14,10 @@ signals:
 
 private:
     double convertCoord(const QString &coord, const QString &dir);
-    GpsData parseGpgga(const QString &line);
+    void parseGpgga(const QString &line);
     void parseGprmc(const QString &line);
 
-    GpsData ggaData;
-    GpsData rmcData;
     GpsData latest;
+    bool gotGGA = false;
+    bool gotRMC = false;
 };

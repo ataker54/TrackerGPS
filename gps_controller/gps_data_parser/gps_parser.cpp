@@ -4,6 +4,8 @@
 GPSParser::GPSParser(QObject *parent) : QObject(parent) {}
 
 void GPSParser::parseLine(const QString &line) {
+    static bool gotGGA = false;
+    static bool gotRMC = false;
     if (line.startsWith("$GPGGA")) {
         parseGpgga(line);
         gotGGA = true; }

@@ -18,6 +18,5 @@ private:
     void parseGprmc(const QString &line);
 
     GpsData latest;
-    bool gotGGA = false;
-    bool gotRMC = false;
+
 };

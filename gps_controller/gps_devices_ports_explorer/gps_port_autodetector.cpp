@@ -41,6 +41,7 @@ void GpsPortAutoDetector::FindPorts()
 {
     qDebug() << "Загружено устройств:" << gpsDatabase.size();
     detectedPorts = QSerialPortInfo::availablePorts();
+    gpsPorts.clear();
 
     for (const QSerialPortInfo& portInfo : detectedPorts) {
         qDebug() << "\nPort:" << portInfo.portName()
@@ -58,6 +59,7 @@ void GpsPortAutoDetector::FindPorts()
                      : QByteArray());
 
         if (isCOMPortGPS(portInfo)) {
+            gpsPorts.append(portInfo);
             gpsPortName=portInfo.portName();
             qDebug() << "Это GPS-порт!";
         } else {
@@ -65,4 +67,7 @@ void GpsPortAutoDetector::FindPorts()
         }
     }
 }
-
+QList<QSerialPortInfo> GpsPortAutoDetector::getGpsPorts() const
+{
+    return gpsPorts;
+}

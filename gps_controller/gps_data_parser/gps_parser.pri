@@ -1,0 +1,11 @@
+QT += serialport
+
+GPS_DATA_PARSER_DIR = $$PWD
+
+INCLUDEPATH += $$GPS_DATA_PARSER_DIR
+
+SOURCES += \
+$$GPS_DATA_PARSER_DIR/gps_parser.cpp\
+
+HEADERS += \
+$$GPS_DATA_PARSER_DIR/gps_parser.h

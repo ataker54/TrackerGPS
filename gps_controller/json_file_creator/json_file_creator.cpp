@@ -9,9 +9,10 @@
 JsonFileCreator::JsonFileCreator(const QString& filePath)
     : jsonFilePath(filePath) {}
 
-void JsonFileCreator::createDefaultDatabase()
-{
-    if (QFile::exists(jsonFilePath))
+void JsonFileCreator::createDefaultDatabase() //fix: переименовать во что-то типа createDefaultDatabaseIfNotExist
+{                                             // или
+    if (QFile::exists(jsonFilePath))          // убрать отсюда эту проверку и переместить в место между
+                                              // JsonFileCreator db("gps_database.json"); db.createDefaultDatabase();
         return;
 
     QJsonArray deviceArray;

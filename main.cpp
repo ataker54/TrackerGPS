@@ -7,6 +7,8 @@ extern void saveGpsDataToFile(const GpsData &data, const QString &filePath);
 
 int main(int argc, char *argv[])
 {
+    qRegisterMetaType<GpsData>("GpsData");
+
     QCoreApplication app(argc, argv);
     gps_controller controller;
     QString logFilePath;

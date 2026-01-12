@@ -2,20 +2,27 @@
 #include <QDebug>
 #include <Windows.h>
 #include <gps_port_autodetector.h>
+#include <QThread>
 
 GPSReceiver::GPSReceiver(QObject *parent) : QObject(parent)
 {
 
 }
 
-bool GPSReceiver::start(const QString &portName, int baudRate) {
+void GPSReceiver::startInThread(const QString &portName, int baudRate) {
+    // Убедиться, что нас вызвали не из GUI потока
+    qDebug() << "GPSReceiver thread:" << QThread::currentThread();
+    // при необходимости:
+    // Q_ASSERT(QThread::currentThread() != qApp->thread());
+
+    if (running)
+        return;
     running = true;
     readLoop(portName, baudRate);
-    return true;
 }
 
 
-void GPSReceiver::stop() {
+void GPSReceiver::stopInThread() {
     running = false;
 }
 

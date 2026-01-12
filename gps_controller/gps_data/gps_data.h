@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QMetaType>
 
 struct GpsData {
     double latitude = 0.0;
@@ -49,6 +50,8 @@ struct GpsData {
     }
 
 };
+Q_DECLARE_METATYPE(GpsData)
+
 
 
 #endif // GPS_DATA_H

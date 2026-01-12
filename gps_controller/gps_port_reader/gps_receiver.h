@@ -19,8 +19,8 @@ class GPSReceiver : public QObject
 public:
     explicit GPSReceiver(QObject *parent = nullptr);
 
-    bool start(const QString &portName, int baudRate = 9600);
-    void stop();
+    void startInThread(const QString &portName, int baudRate = 9600);
+    void stopInThread();
 
 signals:
     void getDataReceived(const QByteArray &data);
